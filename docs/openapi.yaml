@@ -1,0 +1,1167 @@
+openapi: 3.0.3
+info:
+  title: Engly API
+  version: 1.0.0
+  description: |
+    OpenAPI scaffold for Engly (IELTS/TOEIC learning platform).
+    This file is intended for frontend integration and backend implementation planning.
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Courses
+  - name: Units
+  - name: Lessons
+  - name: Exercises
+  - name: Flashcards
+  - name: Mock Exams
+  - name: AI
+  - name: Subscription
+  - name: Payments
+  - name: Gamification
+  - name: Admin
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    CourseTypeQuery:
+      name: type
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/CourseType'
+
+  schemas:
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+      required: [accessToken]
+
+    AuthUser:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [USER, ADMIN]
+      required: [userId, email, role]
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+      required: [email, password, name]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/AuthUser'
+      required: [accessToken, user]
+
+    CourseType:
+      type: string
+      enum: [IELTS, TOEIC]
+
+    SkillType:
+      type: string
+      enum: [LISTENING, READING, WRITING, SPEAKING, GRAMMAR, VOCABULARY]
+
+    CourseSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        courseType:
+          $ref: '#/components/schemas/CourseType'
+        skillType:
+          $ref: '#/components/schemas/SkillType'
+        thumbnail:
+          type: string
+          nullable: true
+        level:
+          type: integer
+        isPremium:
+          type: boolean
+        order:
+          type: integer
+        totalUnits:
+          type: integer
+      required: [id, title, courseType, skillType, level, isPremium, order, totalUnits]
+
+    UnitSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        order:
+          type: integer
+      required: [id, title, order]
+
+    LessonSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        order:
+          type: integer
+        duration:
+          type: integer
+          nullable: true
+        isPremium:
+          type: boolean
+      required: [id, title, order, isPremium]
+
+    ExerciseType:
+      type: string
+      enum:
+        - MULTIPLE_CHOICE
+        - FILL_IN_BLANK
+        - MATCHING
+        - ORDERING
+        - TRUE_FALSE
+        - SHORT_ANSWER
+        - ESSAY
+        - LISTENING_COMPREHENSION
+        - READING_COMPREHENSION
+
+    ExerciseSubmitRequest:
+      type: object
+      properties:
+        answers:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+                format: uuid
+              answer:
+                type: string
+            required: [questionId, answer]
+      required: [answers]
+
+    ExerciseSubmitResponse:
+      type: object
+      properties:
+        attemptId:
+          type: string
+          format: uuid
+        totalQuestions:
+          type: integer
+        correctAnswers:
+          type: integer
+        score:
+          type: number
+      required: [attemptId, totalQuestions, correctAnswers, score]
+
+    MockExamStartResponse:
+      type: object
+      properties:
+        attemptId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+      required: [attemptId, startedAt]
+
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        planType:
+          type: string
+          enum: [FREE, PREMIUM, PRO]
+        price:
+          type: number
+        duration:
+          type: integer
+        features:
+          type: array
+          items:
+            type: string
+      required: [id, name, planType, price, duration, features]
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/profile:
+    get:
+      tags: [Auth]
+      summary: Get current profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+
+  /auth/refresh-token:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+              required: [refreshToken]
+      responses:
+        '200':
+          description: New tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user detail
+      responses:
+        '200':
+          description: User detail
+    patch:
+      tags: [Users]
+      summary: Update current user detail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                avatar:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+
+  /users/me/settings:
+    get:
+      tags: [Users]
+      summary: Get user settings
+      responses:
+        '200':
+          description: Settings
+    patch:
+      tags: [Users]
+      summary: Update user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dailyGoal:
+                  type: integer
+                reminderEnabled:
+                  type: boolean
+                reminderTime:
+                  type: string
+                language:
+                  type: string
+                darkMode:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated
+
+  /tracks:
+    get:
+      tags: [Courses]
+      summary: Get available learning tracks
+      responses:
+        '200':
+          description: List of tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseType'
+
+  /courses:
+    get:
+      tags: [Courses]
+      summary: Get courses by track type
+      parameters:
+        - $ref: '#/components/parameters/CourseTypeQuery'
+      responses:
+        '200':
+          description: Course list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CourseSummary'
+
+  /courses/my:
+    get:
+      tags: [Courses]
+      summary: Get enrolled courses + progress
+      responses:
+        '200':
+          description: Enrolled courses
+
+  /courses/{courseId}:
+    get:
+      tags: [Courses]
+      summary: Get course detail
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Course detail
+
+  /courses/{courseId}/enroll:
+    post:
+      tags: [Courses]
+      summary: Enroll course
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Enrolled
+
+  /courses/{courseId}/units:
+    get:
+      tags: [Units]
+      summary: Get units by course
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unit list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnitSummary'
+
+  /units/{unitId}:
+    get:
+      tags: [Units]
+      summary: Get unit detail
+      parameters:
+        - in: path
+          name: unitId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Unit detail
+
+  /units/{unitId}/lessons:
+    get:
+      tags: [Lessons]
+      summary: Get lessons by unit
+      parameters:
+        - in: path
+          name: unitId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LessonSummary'
+
+  /lessons/{lessonId}:
+    get:
+      tags: [Lessons]
+      summary: Get lesson detail (content + video)
+      parameters:
+        - in: path
+          name: lessonId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lesson detail
+
+  /lessons/{lessonId}/complete:
+    patch:
+      tags: [Lessons]
+      summary: Mark lesson as completed
+      parameters:
+        - in: path
+          name: lessonId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Completion updated
+
+  /lessons/{lessonId}/exercises:
+    get:
+      tags: [Exercises]
+      summary: Get exercises by lesson
+      parameters:
+        - in: path
+          name: lessonId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Exercise list
+
+  /exercises/{exerciseId}:
+    get:
+      tags: [Exercises]
+      summary: Get exercise detail
+      parameters:
+        - in: path
+          name: exerciseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Exercise detail
+
+  /exercises/{exerciseId}/attempts:
+    post:
+      tags: [Exercises]
+      summary: Start exercise attempt
+      parameters:
+        - in: path
+          name: exerciseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Attempt started
+
+  /exercises/{exerciseId}/submit:
+    post:
+      tags: [Exercises]
+      summary: Submit exercise answers
+      parameters:
+        - in: path
+          name: exerciseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExerciseSubmitRequest'
+      responses:
+        '200':
+          description: Submitted and graded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseSubmitResponse'
+
+  /exercise-attempts/{attemptId}/result:
+    get:
+      tags: [Exercises]
+      summary: Get exercise attempt result
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Attempt result
+
+  /exercise-attempts/{attemptId}/review:
+    get:
+      tags: [Exercises]
+      summary: Get wrong answers and explanations
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Attempt review
+
+  /flashcard-sets:
+    get:
+      tags: [Flashcards]
+      summary: Get flashcard sets
+      parameters:
+        - in: query
+          name: courseType
+          required: false
+          schema:
+            $ref: '#/components/schemas/CourseType'
+      responses:
+        '200':
+          description: Set list
+
+  /flashcard-sets/{setId}/cards:
+    get:
+      tags: [Flashcards]
+      summary: Get flashcards by set
+      parameters:
+        - in: path
+          name: setId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Card list
+
+  /flashcards/{cardId}/review:
+    post:
+      tags: [Flashcards]
+      summary: Submit flashcard review result
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confidence:
+                  type: integer
+                  minimum: 0
+                  maximum: 5
+              required: [confidence]
+      responses:
+        '200':
+          description: Updated
+
+  /flashcards/review-due:
+    get:
+      tags: [Flashcards]
+      summary: Get cards due for review
+      responses:
+        '200':
+          description: Due cards
+
+  /mock-exams:
+    get:
+      tags: [Mock Exams]
+      summary: Get mock exams by type
+      parameters:
+        - in: query
+          name: courseType
+          required: true
+          schema:
+            $ref: '#/components/schemas/CourseType'
+      responses:
+        '200':
+          description: Exam list
+
+  /mock-exams/{examId}:
+    get:
+      tags: [Mock Exams]
+      summary: Get mock exam detail
+      parameters:
+        - in: path
+          name: examId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Exam detail
+
+  /mock-exams/{examId}/start:
+    post:
+      tags: [Mock Exams]
+      summary: Start mock exam
+      parameters:
+        - in: path
+          name: examId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MockExamStartResponse'
+
+  /mock-exam-attempts/{attemptId}/answer:
+    post:
+      tags: [Mock Exams]
+      summary: Save one answer in mock exam
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questionId:
+                  type: string
+                  format: uuid
+                answer:
+                  type: string
+                timeSpent:
+                  type: integer
+              required: [questionId, answer]
+      responses:
+        '200':
+          description: Saved
+
+  /mock-exam-attempts/{attemptId}/submit:
+    post:
+      tags: [Mock Exams]
+      summary: Submit mock exam
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Submitted
+
+  /mock-exam-attempts/{attemptId}/result:
+    get:
+      tags: [Mock Exams]
+      summary: Get mock exam result
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Result
+
+  /mock-exam-attempts/{attemptId}/review:
+    get:
+      tags: [Mock Exams]
+      summary: Get wrong answers + explanations
+      parameters:
+        - in: path
+          name: attemptId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Review
+
+  /ai/explanations/question:
+    post:
+      tags: [AI]
+      summary: Generate AI explanation for wrong answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                questionId:
+                  type: string
+                  format: uuid
+                userAnswer:
+                  type: string
+              required: [questionId, userAnswer]
+      responses:
+        '200':
+          description: AI explanation
+
+  /ai/study-plan/generate:
+    post:
+      tags: [AI]
+      summary: Generate AI study plan
+      responses:
+        '200':
+          description: Study plan generated
+
+  /ai/pronunciation/check:
+    post:
+      tags: [AI]
+      summary: Check pronunciation (premium)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                word:
+                  type: string
+                audio:
+                  type: string
+                  format: binary
+              required: [word, audio]
+      responses:
+        '200':
+          description: Pronunciation score and feedback
+
+  /ai/usage/me:
+    get:
+      tags: [AI]
+      summary: Get AI feature usage quota
+      responses:
+        '200':
+          description: AI quota detail
+
+  /ai/analyses/{analysisId}:
+    get:
+      tags: [AI]
+      summary: Get one AI analysis record
+      parameters:
+        - in: path
+          name: analysisId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Analysis detail
+
+  /subscription/plans:
+    get:
+      tags: [Subscription]
+      summary: Get available plans
+      security: []
+      responses:
+        '200':
+          description: Plan list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionPlan'
+
+  /subscription/me:
+    get:
+      tags: [Subscription]
+      summary: Get my subscription
+      responses:
+        '200':
+          description: Current subscription
+
+  /subscription/checkout:
+    post:
+      tags: [Subscription]
+      summary: Create checkout session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                planId:
+                  type: string
+                  format: uuid
+              required: [planId]
+      responses:
+        '200':
+          description: Checkout info
+
+  /subscription/webhook:
+    post:
+      tags: [Subscription]
+      summary: Payment gateway webhook
+      security: []
+      responses:
+        '200':
+          description: Webhook received
+
+  /subscription/cancel:
+    post:
+      tags: [Subscription]
+      summary: Cancel subscription
+      responses:
+        '200':
+          description: Canceled
+
+  /payments/history:
+    get:
+      tags: [Payments]
+      summary: Get payment history
+      responses:
+        '200':
+          description: Payment list
+
+  /entitlements/me:
+    get:
+      tags: [Subscription]
+      summary: Get available features for current user
+      responses:
+        '200':
+          description: Entitlements
+
+  /achievements:
+    get:
+      tags: [Gamification]
+      summary: Get all achievements
+      responses:
+        '200':
+          description: Achievement list
+
+  /achievements/me:
+    get:
+      tags: [Gamification]
+      summary: Get my achievements
+      responses:
+        '200':
+          description: User achievements
+
+  /daily-challenges/today:
+    get:
+      tags: [Gamification]
+      summary: Get daily challenge
+      responses:
+        '200':
+          description: Daily challenge
+
+  /daily-challenges/{challengeId}/submit:
+    post:
+      tags: [Gamification]
+      summary: Submit daily challenge
+      parameters:
+        - in: path
+          name: challengeId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Challenge result
+
+  /leaderboard:
+    get:
+      tags: [Gamification]
+      summary: Get leaderboard
+      parameters:
+        - in: query
+          name: period
+          required: false
+          schema:
+            type: string
+            enum: [weekly, monthly, all]
+      responses:
+        '200':
+          description: Leaderboard data
+
+  /admin/courses:
+    post:
+      tags: [Admin]
+      summary: Create course
+      responses:
+        '201':
+          description: Created
+
+  /admin/courses/{courseId}:
+    patch:
+      tags: [Admin]
+      summary: Update course
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Admin]
+      summary: Delete course
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+
+  /admin/units:
+    post:
+      tags: [Admin]
+      summary: Create unit
+      responses:
+        '201':
+          description: Created
+
+  /admin/lessons:
+    post:
+      tags: [Admin]
+      summary: Create lesson
+      responses:
+        '201':
+          description: Created
+
+  /admin/exercises:
+    post:
+      tags: [Admin]
+      summary: Create exercise
+      responses:
+        '201':
+          description: Created
+
+  /admin/questions:
+    post:
+      tags: [Admin]
+      summary: Create question
+      responses:
+        '201':
+          description: Created
+
+  /admin/mock-exams:
+    post:
+      tags: [Admin]
+      summary: Create mock exam
+      responses:
+        '201':
+          description: Created
+
+  /admin/mock-exams/{examId}/publish:
+    post:
+      tags: [Admin]
+      summary: Publish mock exam
+      parameters:
+        - in: path
+          name: examId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Published
+
+  /admin/flashcard-sets:
+    post:
+      tags: [Admin]
+      summary: Create flashcard set
+      responses:
+        '201':
+          description: Created
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Get users
+      responses:
+        '200':
+          description: User list
+
+  /admin/users/{userId}/status:
+    patch:
+      tags: [Admin]
+      summary: Update user status
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+              required: [isActive]
+      responses:
+        '200':
+          description: Updated
